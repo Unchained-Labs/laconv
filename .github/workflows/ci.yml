@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        # `server` is installed so the websocket transport is actually covered;
+        # `device` is not, because it needs PortAudio and a sound card.
+        run: pip install -e ".[dev,server]"
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        run: pytest -q
+      - name: The runnable example must actually run
+        run: |
+          python examples/offline_conversation.py
+          laconv simulate --barge-in full --slow-agent
+
+  no-deps:
+    # The zero-dependency claim in the README is a claim, so check it: the core
+    # must import and the non-server suite must pass with nothing installed but
+    # pytest. A stray `import httpx` in laconv/ fails here and only here.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e "." pytest pytest-asyncio
+      - run: python -c "import laconv, laconv.backends.lavoix, laconv.backends.leclanker"
+      - run: pip list --format=freeze | grep -viE '^(laconv|pytest|pytest-asyncio|pip|setuptools|wheel|packaging|pluggy|iniconfig|exceptiongroup|tomli|typing-extensions)='
+        continue-on-error: true
+      - run: pytest -q
