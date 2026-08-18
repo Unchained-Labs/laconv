@@ -83,6 +83,12 @@ class ConversationSession:
         self.transcript = Transcript()
 
         self._observers: list[Observer] = []
+        # Strong references to in-flight async observer callbacks. The event
+        # loop only holds a *weak* reference to a running task, so a
+        # fire-and-forget `ensure_future` can be garbage-collected mid-flight
+        # and the event is then silently never delivered. This bit CI on 3.12
+        # and 3.13 as a websocket client that sometimes never got `speaking`.
+        self._observer_tasks: set[asyncio.Task] = set()
         self._turn_task: asyncio.Task | None = None
         # Monotonic turn id. Every await in a turn is a chance for that turn to
         # have been cancelled and replaced; anything writing back into session
@@ -111,8 +117,12 @@ class ConversationSession:
                 if asyncio.iscoroutine(result):
                     # Fire and forget: an observer must never be able to stall
                     # the audio path. A UI that falls behind drops frames of
-                    # *its own* rendering, not of the microphone.
-                    asyncio.ensure_future(result)
+                    # *its own* rendering, not of the microphone. The trade is
+                    # that an async observer's events are not ordered against
+                    # the audio they describe -- see protocol.py.
+                    task = asyncio.ensure_future(result)
+                    self._observer_tasks.add(task)
+                    task.add_done_callback(self._observer_tasks.discard)
             except Exception:  # noqa: BLE001 - a broken UI must not end a call
                 log.exception("observer failed")
 
@@ -332,6 +342,12 @@ class ConversationSession:
         await self._cancel_turn()
         await self.speaker.stop()
         self._emit("closed")
+        # Let any queued async observer callbacks finish before the caller
+        # tears the transport down; otherwise the last few events -- including
+        # `closed` itself -- are dropped on the floor.
+        pending = list(self._observer_tasks)
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
 
     async def wait_for_turn(self) -> None:
         """Await the in-flight agent turn. Mostly for tests and CLI examples."""

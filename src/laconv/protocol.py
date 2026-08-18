@@ -18,6 +18,15 @@ bandwidth for nothing.
                                 "delta" | "speaking" | "stop_audio" |
                                 "error" | "closed"}
 
+Ordering
+--------
+Binary audio frames are sent inline with the turn, so `stop_audio` is always
+ordered *before* any audio that follows it -- that ordering is what makes
+barge-in correct. Descriptive text frames (`transcript`, `delta`, `speaking`,
+`state`) go through the session's observer path, which is deliberately
+fire-and-forget so a slow client cannot stall the audio pipeline. A client must
+therefore not assume a `speaking` frame arrives before the WAV it describes.
+
 The one message that matters most
 --------------------------------
 `stop_audio`. A remote device buffers the WAVs it has been sent; when the human

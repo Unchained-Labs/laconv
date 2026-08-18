@@ -223,6 +223,13 @@ been sent, so **barge-in is not implemented until the client drops its buffer
 on `stop_audio`.** A client that ignores that frame does not have barge-in, no
 matter what the server does.
 
+One ordering caveat, because it will bite a client author otherwise: binary
+audio and `stop_audio` are sent inline with the turn, so a stop always precedes
+the audio it cancels. The *descriptive* frames (`transcript`, `delta`,
+`speaking`, `state`) travel a fire-and-forget path so a slow client cannot stall
+the audio pipeline, and may therefore arrive either side of the WAV they
+describe. Do not use them to sequence playback.
+
 The `ready` frame advertises capabilities. Absent means absent — `aec`,
 `wake_word`, `webrtc` and `streaming_stt` are not in the list, and a test
 asserts they never quietly appear.

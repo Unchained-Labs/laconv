@@ -1,0 +1,8 @@
+#!/tmp/claude-1000/-home-jarvis-dev-chezmoi/56bb4142-4bfd-4fb2-a40a-c02e1081e6ec/scratchpad/lc/laconv/.venv312/bin/python3.12
+# -*- coding: utf-8 -*-
+import re
+import sys
+from pygments.cmdline import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

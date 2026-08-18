@@ -363,6 +363,28 @@ async def test_a_slow_agent_hits_the_first_response_timeout():
     assert session.state is State.IDLE
 
 
+async def test_async_observers_actually_receive_events():
+    """`ensure_future` alone is not enough: the loop keeps only a weak
+    reference, so an unreferenced fire-and-forget callback can be collected
+    before it runs and the event vanishes. It did, on 3.12 and 3.13."""
+    seen: list[str] = []
+
+    async def slow_observer(event):
+        await asyncio.sleep(0)
+        seen.append(event.type)
+
+    session, _, _, _, _ = build()
+    session.subscribe(slow_observer)
+    await calibrate(session)
+    await speak(session)
+    await session.wait_for_turn()
+    await session.close()
+
+    assert "transcript" in seen
+    assert "speaking" in seen
+    assert "closed" in seen
+
+
 async def test_a_broken_observer_cannot_kill_the_call():
     session, _, _, tts, _ = build()
 
