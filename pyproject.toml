@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "laconv"
+version = "0.1.0"
+description = "Turn-taking, endpointing and barge-in for voice agents. The conversation layer, not the model and not the codec."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Erwin Lejeune", email = "erwin.lejeune15@gmail.com" }]
+keywords = [
+    "voice",
+    "conversation",
+    "vad",
+    "endpointing",
+    "barge-in",
+    "turn-taking",
+    "speech",
+    "agents",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Typing :: Typed",
+]
+# Zero runtime dependencies, like its sibling `soif`. The LaVoix and LeClanker
+# backends are stdlib-only (urllib + asyncio streams) so the default path
+# installs nothing. Everything below is opt-in.
+dependencies = []
+
+[project.optional-dependencies]
+server = ["websockets>=12"]          # the websocket transport only
+device = ["sounddevice>=0.4"]        # a real microphone/speaker on this host
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.6"]
+
+[project.urls]
+Homepage = "https://github.com/Unchained-Labs/laconv"
+Repository = "https://github.com/Unchained-Labs/laconv"
+Issues = "https://github.com/Unchained-Labs/laconv/issues"
+
+[project.scripts]
+laconv = "laconv.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/laconv"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
