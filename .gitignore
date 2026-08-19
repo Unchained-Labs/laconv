@@ -2,6 +2,11 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+# Any virtualenv, whatever it got named. `.venv312` was committed once
+# because the two rules above only matched the two most common names.
+.venv*/
+venv*/
+env/
 dist/
 build/
 *.egg-info/
